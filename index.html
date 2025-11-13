@@ -101,27 +101,61 @@
         let displayLimit = 9;
 
         async function fetchStockPrice(symbol) {
-            try {
-                const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=1d`;
-                const response = await fetch(url);
-                const data = await response.json();
-                
-                if (data.chart?.result?.[0]) {
-                    const quote = data.chart.result[0].meta;
-                    const price = quote.regularMarketPrice || 0;
-                    const prev = quote.chartPreviousClose || quote.previousClose || price;
-                    const change = price - prev;
-                    const pct = (change / prev) * 100;
-                    
-                    return {
-                        price: price.toFixed(2),
-                        change: change.toFixed(2),
-                        changePercent: pct.toFixed(2),
-                        timestamp: new Date().toLocaleString()
-                    };
+            // Try multiple methods to fetch stock data
+            const methods = [
+                // Method 1: Direct API call
+                async () => {
+                    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=1d`;
+                    const response = await fetch(url);
+                    return await response.json();
+                },
+                // Method 2: CORS proxy
+                async () => {
+                    const proxy = 'https://api.allorigins.win/raw?url=';
+                    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=1d`;
+                    const response = await fetch(proxy + encodeURIComponent(url));
+                    return await response.json();
+                },
+                // Method 3: Alternative CORS proxy
+                async () => {
+                    const proxy = 'https://corsproxy.io/?';
+                    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=1d`;
+                    const response = await fetch(proxy + encodeURIComponent(url));
+                    return await response.json();
                 }
-            } catch (e) {
-                console.error(`Error fetching ${symbol}:`, e);
+            ];
+
+            for (let i = 0; i < methods.length; i++) {
+                try {
+                    const data = await methods[i]();
+                    
+                    if (data.chart?.result?.[0]) {
+                        const quote = data.chart.result[0].meta;
+                        const price = quote.regularMarketPrice || 0;
+                        const prev = quote.chartPreviousClose || quote.previousClose || price;
+                        const change = price - prev;
+                        const pct = (change / prev) * 100;
+                        
+                        return {
+                            price: price.toFixed(2),
+                            change: change.toFixed(2),
+                            changePercent: pct.toFixed(2),
+                            timestamp: new Date().toLocaleString()
+                        };
+                    }
+                } catch (e) {
+                    console.error(`Method ${i + 1} failed for ${symbol}:`, e);
+                    if (i === methods.length - 1) {
+                        // All methods failed
+                        return {
+                            price: '0.00',
+                            change: '0.00',
+                            changePercent: '0.00',
+                            timestamp: new Date().toLocaleString(),
+                            error: true
+                        };
+                    }
+                }
             }
             
             return {
@@ -178,7 +212,7 @@
             try {
                 const batch = stocks.slice(0, displayLimit);
                 const promises = batch.map(async (s, i) => {
-                    await new Promise(r => setTimeout(r, i * 100));
+                    await new Promise(r => setTimeout(r, i * 300)); // Increased delay
                     const priceData = await fetchStockPrice(s.symbol);
                     return { ...s, priceData };
                 });
@@ -226,7 +260,7 @@
             
             const newBatch = stocks.slice(oldLimit, displayLimit);
             const promises = newBatch.map(async (s, i) => {
-                await new Promise(r => setTimeout(r, i * 100));
+                await new Promise(r => setTimeout(r, i * 300)); // Increased delay
                 const priceData = await fetchStockPrice(s.symbol);
                 return { ...s, priceData };
             });
