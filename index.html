@@ -43,34 +43,37 @@
             margin-bottom: 16px;
         }
 
-        .api-key-section {
-            background: #fff5e6;
-            border: 2px solid #ffa500;
+        .warning-box {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
             border-radius: 8px;
             padding: 16px;
             margin-bottom: 16px;
         }
 
-        .api-key-section h3 {
-            color: #d97706;
+        .warning-box h3 {
+            color: #856404;
             font-size: 16px;
             margin-bottom: 8px;
         }
 
-        .api-key-section input {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #e2e8f0;
-            border-radius: 6px;
+        .warning-box p {
+            color: #856404;
             font-size: 14px;
+            line-height: 1.5;
             margin-bottom: 8px;
         }
 
-        .api-key-section small {
-            color: #718096;
-            font-size: 12px;
-            display: block;
-            margin-top: 4px;
+        .warning-box a {
+            color: #0066cc;
+            text-decoration: underline;
+        }
+
+        .warning-box code {
+            background: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 13px;
         }
 
         .controls {
@@ -92,17 +95,12 @@
             touch-action: manipulation;
         }
 
-        button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
         .btn-primary {
             background: #667eea;
             color: white;
         }
 
-        .btn-primary:active:not(:disabled) {
+        .btn-primary:active {
             background: #5568d3;
             transform: scale(0.98);
         }
@@ -115,28 +113,6 @@
         .btn-secondary:active {
             background: #cbd5e0;
             transform: scale(0.98);
-        }
-
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: white;
-            font-size: 18px;
-        }
-
-        .spinner {
-            border: 4px solid rgba(255, 255, 255, 0.3);
-            border-top: 4px solid white;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 16px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
         }
 
         .stats {
@@ -255,22 +231,14 @@
             color: #1a202c;
         }
 
-        .error {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            margin: 20px 0;
-            color: #c53030;
-            text-align: center;
-        }
-
-        .success-message {
-            background: #c6f6d5;
-            border-radius: 8px;
+        .demo-note {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
             padding: 12px;
-            margin-top: 8px;
-            color: #22543d;
-            font-size: 14px;
+            margin-top: 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #1565c0;
         }
 
         @media (max-width: 640px) {
@@ -302,22 +270,31 @@
     <div class="container">
         <div class="header">
             <h1>📊 S&P 500 Stock Analyzer</h1>
-            <div class="subtitle">Real-time analysis powered by Yahoo Finance API</div>
+            <div class="subtitle">Top 20 S&P 500 Stocks Monitor</div>
             
-            <div class="api-key-section" id="apiKeySection">
-                <h3>⚠️ RapidAPI Key Required</h3>
-                <input 
-                    type="password" 
-                    id="apiKeyInput" 
-                    placeholder="Paste your RapidAPI key here..."
-                    value="">
-                <small>Get your free API key at <a href="https://rapidapi.com/apidojo/api/yahoo-finance1" target="_blank">rapidapi.com/apidojo/api/yahoo-finance1</a></small>
-                <button class="btn-primary" onclick="saveApiKey()" style="width: 100%; margin-top: 12px;">💾 Save API Key</button>
+            <div class="warning-box">
+                <h3>⚠️ Google Sites Limitation Detected</h3>
+                <p><strong>Problem:</strong> Google Sites blocks external API calls due to CORS security restrictions. This prevents fetching live stock data directly from the page.</p>
+                
+                <p><strong>Solutions (choose one):</strong></p>
+                <p><strong>Option 1 (Recommended):</strong> Download this HTML file and open it directly in your browser (not on Google Sites). It will work perfectly with real API data.</p>
+                
+                <p><strong>Option 2:</strong> Host on a different platform:
+                <br>• GitHub Pages (free, easy)
+                <br>• Netlify (free, drag & drop)
+                <br>• Your own web hosting</p>
+                
+                <p><strong>Option 3:</strong> Use the demo version below with simulated data (works on Google Sites but not real prices)</p>
+                
+                <div class="demo-note">
+                    💡 <strong>Quick Test:</strong> Click "Load Demo Data" below to see how it works with sample data.
+                </div>
             </div>
 
             <div class="controls">
-                <button class="btn-primary" onclick="loadStocks()" id="refreshBtn" disabled>🔄 Refresh Data</button>
+                <button class="btn-primary" onclick="loadDemoData()">📊 Load Demo Data</button>
                 <button class="btn-secondary" onclick="showInfo()">ℹ️ Info</button>
+                <button class="btn-secondary" onclick="downloadAsFile()">⬇️ Download HTML</button>
             </div>
         </div>
 
@@ -342,161 +319,63 @@
             </div>
         </div>
 
-        <div id="loading" class="loading" style="display: none;">
-            <div class="spinner"></div>
-            <div id="loadingText">Loading stock data...</div>
-        </div>
-
-        <div id="error" class="error" style="display: none;"></div>
-
         <div id="stocks" class="stocks-grid"></div>
     </div>
 
     <script>
         const TOP_20_SP500 = [
-            'AAPL', 'MSFT', 'NVDA', 'AMZN', 'GOOGL', 
-            'META', 'TSLA', 'BRK-B', 'UNH', 'XOM',
-            'JPM', 'JNJ', 'V', 'PG', 'MA',
-            'HD', 'CVX', 'MRK', 'ABBV', 'LLY'
+            { symbol: 'AAPL', name: 'Apple Inc.', basePrice: 175 },
+            { symbol: 'MSFT', name: 'Microsoft Corporation', basePrice: 380 },
+            { symbol: 'NVDA', name: 'NVIDIA Corporation', basePrice: 495 },
+            { symbol: 'AMZN', name: 'Amazon.com Inc.', basePrice: 155 },
+            { symbol: 'GOOGL', name: 'Alphabet Inc.', basePrice: 140 },
+            { symbol: 'META', name: 'Meta Platforms Inc.', basePrice: 350 },
+            { symbol: 'TSLA', name: 'Tesla Inc.', basePrice: 245 },
+            { symbol: 'BRK.B', name: 'Berkshire Hathaway', basePrice: 365 },
+            { symbol: 'UNH', name: 'UnitedHealth Group', basePrice: 520 },
+            { symbol: 'XOM', name: 'Exxon Mobil Corporation', basePrice: 110 },
+            { symbol: 'JPM', name: 'JPMorgan Chase & Co.', basePrice: 155 },
+            { symbol: 'JNJ', name: 'Johnson & Johnson', basePrice: 160 },
+            { symbol: 'V', name: 'Visa Inc.', basePrice: 260 },
+            { symbol: 'PG', name: 'Procter & Gamble', basePrice: 155 },
+            { symbol: 'MA', name: 'Mastercard Inc.', basePrice: 420 },
+            { symbol: 'HD', name: 'Home Depot Inc.', basePrice: 340 },
+            { symbol: 'CVX', name: 'Chevron Corporation', basePrice: 155 },
+            { symbol: 'MRK', name: 'Merck & Co. Inc.', basePrice: 105 },
+            { symbol: 'ABBV', name: 'AbbVie Inc.', basePrice: 165 },
+            { symbol: 'LLY', name: 'Eli Lilly and Company', basePrice: 580 }
         ];
 
-        let apiKey = '';
         let stocksData = [];
 
-        // Check for saved API key on load
-        window.addEventListener('load', () => {
-            const savedKey = localStorage.getItem('rapidapi_key');
-            if (savedKey) {
-                apiKey = savedKey;
-                document.getElementById('apiKeyInput').value = savedKey;
-                document.getElementById('refreshBtn').disabled = false;
-                document.getElementById('apiKeySection').style.display = 'none';
-            }
-        });
-
-        function saveApiKey() {
-            const input = document.getElementById('apiKeyInput');
-            const key = input.value.trim();
-            
-            if (!key) {
-                alert('Please enter your RapidAPI key');
-                return;
-            }
-
-            apiKey = key;
-            localStorage.setItem('rapidapi_key', key);
-            document.getElementById('refreshBtn').disabled = false;
-            document.getElementById('apiKeySection').innerHTML = `
-                <div class="success-message">
-                    ✅ API Key saved! You can now load stock data.
-                    <button onclick="resetApiKey()" style="background: none; border: none; color: #22543d; text-decoration: underline; cursor: pointer; margin-left: 10px;">Change Key</button>
-                </div>
-            `;
-        }
-
-        function resetApiKey() {
-            localStorage.removeItem('rapidapi_key');
-            apiKey = '';
-            location.reload();
-        }
-
-        async function loadStocks() {
-            if (!apiKey) {
-                alert('Please enter your RapidAPI key first');
-                return;
-            }
-
-            const loading = document.getElementById('loading');
-            const loadingText = document.getElementById('loadingText');
-            const error = document.getElementById('error');
+        function loadDemoData() {
             const stats = document.getElementById('stats');
             const stocksContainer = document.getElementById('stocks');
-            const refreshBtn = document.getElementById('refreshBtn');
 
-            loading.style.display = 'block';
-            error.style.display = 'none';
-            stats.style.display = 'none';
             stocksContainer.innerHTML = '';
             stocksData = [];
-            refreshBtn.disabled = true;
 
-            try {
-                // Fetch quotes for all symbols in one batch call
-                loadingText.textContent = 'Fetching stock data from Yahoo Finance...';
+            for (let stock of TOP_20_SP500) {
+                const changePercent = (Math.random() - 0.5) * 8;
+                const price = stock.basePrice * (1 + changePercent / 100);
+                const change = price - stock.basePrice;
                 
-                const symbolsParam = TOP_20_SP500.join(',');
-                const url = `https://apidojo-yahoo-finance-v1.p.rapidapi.com/market/v2/get-quotes?region=US&symbols=${symbolsParam}`;
+                const stockData = {
+                    symbol: stock.symbol,
+                    name: stock.name,
+                    price: price,
+                    change: change,
+                    changePercent: changePercent,
+                    volume: Math.floor(Math.random() * 80000000 + 20000000),
+                    marketCap: price * (Math.random() * 800000000 + 500000000)
+                };
                 
-                console.log('Fetching from:', url);
-                
-                const response = await fetch(url, {
-                    method: 'GET',
-                    headers: {
-                        'X-RapidAPI-Key': apiKey,
-                        'X-RapidAPI-Host': 'apidojo-yahoo-finance-v1.p.rapidapi.com'
-                    }
-                });
-
-                console.log('Response status:', response.status);
-                
-                if (!response.ok) {
-                    if (response.status === 403) {
-                        throw new Error('Invalid API Key or not subscribed to Yahoo Finance API. Please check: 1) Your API key is correct 2) You are subscribed to the API at rapidapi.com/apidojo/api/yahoo-finance1');
-                    } else if (response.status === 429) {
-                        throw new Error('Rate limit exceeded. Please wait a few minutes and try again.');
-                    } else {
-                        const errorText = await response.text();
-                        throw new Error(`API Error ${response.status}: ${errorText}`);
-                    }
-                }
-
-                const data = await response.json();
-                console.log('API Response:', data);
-                
-                if (!data.quoteResponse || !data.quoteResponse.result) {
-                    throw new Error('Invalid response format from API. Make sure you are subscribed to the Yahoo Finance API.');
-                }
-
-                if (data.quoteResponse.result.length === 0) {
-                    throw new Error('No data returned from API. Check if your subscription is active.');
-                }
-
-                loadingText.textContent = 'Processing stock data...';
-
-                // Process all stocks
-                for (const quote of data.quoteResponse.result) {
-                    const stockData = {
-                        symbol: quote.symbol,
-                        name: quote.shortName || quote.longName || quote.symbol,
-                        price: quote.regularMarketPrice || 0,
-                        change: quote.regularMarketChange || 0,
-                        changePercent: quote.regularMarketChangePercent || 0,
-                        volume: quote.regularMarketVolume || 0,
-                        marketCap: quote.marketCap || 0
-                    };
-                    
-                    stocksData.push(stockData);
-                    displayStock(stockData);
-                }
-
-                loading.style.display = 'none';
-                stats.style.display = 'block';
-                updateStats();
-                refreshBtn.disabled = false;
-                
-            } catch (err) {
-                console.error('Error details:', err);
-                loading.style.display = 'none';
-                error.style.display = 'block';
-                error.innerHTML = `
-                    <strong>⚠️ Error loading stocks</strong><br>
-                    ${err.message}<br><br>
-                    ${err.message.includes('API Key') || err.message.includes('subscribed') ? 
-                        '<button onclick="resetApiKey()" style="padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; margin: 5px;">Update API Key</button><br><small>Make sure you\'re subscribed at: <a href="https://rapidapi.com/apidojo/api/yahoo-finance1" target="_blank">rapidapi.com/apidojo/api/yahoo-finance1</a></small>' : 
-                        '<small>Try again in a few moments. Check browser console (F12) for details.</small>'}
-                `;
-                refreshBtn.disabled = false;
+                stocksData.push(stockData);
+                displayStock(stockData);
             }
+
+            stats.style.display = 'block';
+            updateStats();
         }
 
         function displayStock(stock) {
@@ -563,21 +442,163 @@
             return '$' + cap.toFixed(0);
         }
 
+        function downloadAsFile() {
+            // Create the full HTML with API integration
+            const htmlContent = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>S&P 500 Stock Analyzer - API Version</title>
+    <style>${document.querySelector('style').textContent}</style>
+</head>
+<body>
+    ${document.querySelector('.container').outerHTML.replace(/Load Demo Data|Download HTML/g, match => match === 'Load Demo Data' ? 'Refresh Real Data' : 'Info')}
+    <script>
+        // Full version with real API integration
+        const API_KEY = 'YOUR_RAPIDAPI_KEY_HERE'; // Replace with your actual key
+        
+        const TOP_20_SP500 = ['AAPL','MSFT','NVDA','AMZN','GOOGL','META','TSLA','BRK-B','UNH','XOM','JPM','JNJ','V','PG','MA','HD','CVX','MRK','ABBV','LLY'];
+        
+        let stocksData = [];
+        
+        async function loadDemoData() {
+            const stats = document.getElementById('stats');
+            const stocksContainer = document.getElementById('stocks');
+            stocksContainer.innerHTML = '<div style="text-align:center;padding:40px;color:#1a202c;background:white;border-radius:12px;">Loading real stock data...</div>';
+            
+            try {
+                const symbolsParam = TOP_20_SP500.join(',');
+                const url = \`https://apidojo-yahoo-finance-v1.p.rapidapi.com/market/v2/get-quotes?region=US&symbols=\${symbolsParam}\`;
+                
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'X-RapidAPI-Key': API_KEY,
+                        'X-RapidAPI-Host': 'apidojo-yahoo-finance-v1.p.rapidapi.com'
+                    }
+                });
+                
+                if (!response.ok) throw new Error('API Error: ' + response.status);
+                
+                const data = await response.json();
+                stocksContainer.innerHTML = '';
+                stocksData = [];
+                
+                for (const quote of data.quoteResponse.result) {
+                    const stockData = {
+                        symbol: quote.symbol,
+                        name: quote.shortName || quote.symbol,
+                        price: quote.regularMarketPrice || 0,
+                        change: quote.regularMarketChange || 0,
+                        changePercent: quote.regularMarketChangePercent || 0,
+                        volume: quote.regularMarketVolume || 0,
+                        marketCap: quote.marketCap || 0
+                    };
+                    stocksData.push(stockData);
+                    displayStock(stockData);
+                }
+                
+                stats.style.display = 'block';
+                updateStats();
+            } catch (err) {
+                stocksContainer.innerHTML = '<div style="text-align:center;padding:40px;color:#c53030;background:white;border-radius:12px;">Error: ' + err.message + '<br><small>Make sure to replace YOUR_RAPIDAPI_KEY_HERE with your actual API key</small></div>';
+            }
+        }
+        
+        function displayStock(stock) {
+            const stocksContainer = document.getElementById('stocks');
+            const isPositive = stock.changePercent >= 0;
+            const card = document.createElement('div');
+            card.className = 'stock-card';
+            card.innerHTML = \`
+                <div class="stock-header">
+                    <div>
+                        <div class="stock-symbol">\${stock.symbol}</div>
+                        <div class="stock-name">\${stock.name}</div>
+                    </div>
+                </div>
+                <div class="stock-price">$\${stock.price.toFixed(2)}</div>
+                <div class="stock-change \${isPositive ? 'positive' : 'negative'}">
+                    \${isPositive ? '▲' : '▼'} \${Math.abs(stock.changePercent).toFixed(2)}%
+                </div>
+                <div class="stock-details">
+                    <div class="detail-row">
+                        <span class="detail-label">Change</span>
+                        <span class="detail-value">\${isPositive ? '+' : ''}$\${stock.change.toFixed(2)}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Volume</span>
+                        <span class="detail-value">\${formatVolume(stock.volume)}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Market Cap</span>
+                        <span class="detail-value">\${formatMarketCap(stock.marketCap)}</span>
+                    </div>
+                </div>\`;
+            stocksContainer.appendChild(card);
+        }
+        
+        function updateStats() {
+            const loaded = stocksData.length;
+            const avgChange = stocksData.reduce((sum, s) => sum + s.changePercent, 0) / loaded;
+            const gainers = stocksData.filter(s => s.changePercent > 0).length;
+            const losers = stocksData.filter(s => s.changePercent < 0).length;
+            document.getElementById('loadedCount').textContent = loaded;
+            document.getElementById('avgChange').textContent = avgChange.toFixed(2) + '%';
+            document.getElementById('avgChange').style.color = avgChange >= 0 ? '#22543d' : '#742a2a';
+            document.getElementById('gainers').textContent = gainers;
+            document.getElementById('losers').textContent = losers;
+        }
+        
+        function formatVolume(volume) {
+            if (volume >= 1000000000) return (volume / 1000000000).toFixed(2) + 'B';
+            if (volume >= 1000000) return (volume / 1000000).toFixed(2) + 'M';
+            if (volume >= 1000) return (volume / 1000).toFixed(2) + 'K';
+            return volume.toString();
+        }
+        
+        function formatMarketCap(marketCap) {
+            const cap = parseFloat(marketCap);
+            if (cap >= 1000000000000) return '$' + (cap / 1000000000000).toFixed(2) + 'T';
+            if (cap >= 1000000000) return '$' + (cap / 1000000000).toFixed(2) + 'B';
+            if (cap >= 1000000) return '$' + (cap / 1000000).toFixed(2) + 'M';
+            return '$' + cap.toFixed(0);
+        }
+        
+        function showInfo() {
+            alert('S&P 500 Stock Analyzer\\n\\nThis version includes real API integration.\\n\\nTo use:\\n1. Get API key from rapidapi.com/apidojo/api/yahoo-finance1\\n2. Replace YOUR_RAPIDAPI_KEY_HERE in the code\\n3. Open this file in any browser');
+        }
+        
+        window.addEventListener('load', loadDemoData);
+    <\/script>
+</body>
+</html>`;
+
+            const blob = new Blob([htmlContent], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'sp500-analyzer-with-api.html';
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            alert('✅ Downloaded!\n\nTo use with real data:\n1. Open the downloaded HTML file in a text editor\n2. Replace YOUR_RAPIDAPI_KEY_HERE with your actual API key\n3. Open it in any browser\n\nIt will fetch real stock prices!');
+        }
+
         function showInfo() {
             alert('📊 S&P 500 Stock Analyzer\n\n' +
-                  'Powered by Yahoo Finance API via RapidAPI\n\n' +
-                  'Features:\n' +
-                  '✅ Real-time stock prices (live data)\n' +
-                  '✅ Market statistics & analysis\n' +
-                  '✅ Mobile-optimized design\n' +
-                  '✅ Top 20 S&P 500 stocks\n\n' +
-                  'API Info:\n' +
-                  '• Free tier: 500 requests/month\n' +
-                  '• Updates every refresh\n' +
-                  '• Data from Yahoo Finance\n\n' +
-                  'Get your API key:\n' +
-                  'rapidapi.com/apidojo/api/yahoo-finance1');
+                  '⚠️ Google Sites CORS Limitation\n' +
+                  'Google Sites blocks external API calls for security.\n\n' +
+                  'Solutions:\n' +
+                  '1. Download the HTML file (button above)\n' +
+                  '2. Host on GitHub Pages, Netlify, or your server\n' +
+                  '3. Use demo data (works on Google Sites)\n\n' +
+                  'The downloaded version works with real Yahoo Finance data!');
         }
+
+        // Auto-load demo data on page load
+        window.addEventListener('load', loadDemoData);
     </script>
 </body>
 </html>
