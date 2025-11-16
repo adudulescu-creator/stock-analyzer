@@ -1,604 +1,453 @@
-<!DOCTYPE html>
+        function saveKey() {
+            var input = document.getElementById('apiKey').value.trim();
+            if (!input) { alert('Enter API key'); return; }
+            key = input;
+            localStorage.setItem('rapidapi_key', key);
+            document.getElementById('refreshBtn').disabled = false;
+            document.getElementById('apiBox').style.display = 'none';
+            load();
+        }<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>S&P 500 Stock Analyzer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>S&P 500 Movers</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 16px;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .header {
-            background: white;
-            border-radius: 16px;
-            padding: 24px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-
-        h1 {
-            font-size: 24px;
-            color: #1a202c;
-            margin-bottom: 8px;
-        }
-
-        .subtitle {
-            color: #718096;
-            font-size: 14px;
-            margin-bottom: 16px;
-        }
-
-        .warning-box {
-            background: #fff3cd;
-            border: 2px solid #ffc107;
-            border-radius: 8px;
-            padding: 16px;
-            margin-bottom: 16px;
-        }
-
-        .warning-box h3 {
-            color: #856404;
-            font-size: 16px;
-            margin-bottom: 8px;
-        }
-
-        .warning-box p {
-            color: #856404;
-            font-size: 14px;
-            line-height: 1.5;
-            margin-bottom: 8px;
-        }
-
-        .warning-box a {
-            color: #0066cc;
-            text-decoration: underline;
-        }
-
-        .warning-box code {
-            background: #f8f9fa;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 13px;
-        }
-
-        .controls {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-        }
-
-        button {
-            flex: 1;
-            min-width: 140px;
-            padding: 14px 20px;
-            font-size: 16px;
-            font-weight: 600;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
-            touch-action: manipulation;
-        }
-
-        .btn-primary {
-            background: #667eea;
-            color: white;
-        }
-
-        .btn-primary:active {
-            background: #5568d3;
-            transform: scale(0.98);
-        }
-
-        .btn-secondary {
-            background: #e2e8f0;
-            color: #2d3748;
-        }
-
-        .btn-secondary:active {
-            background: #cbd5e0;
-            transform: scale(0.98);
-        }
-
-        .stats {
-            background: white;
-            border-radius: 16px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap: 16px;
-        }
-
-        .stat-item {
-            text-align: center;
-        }
-
-        .stat-label {
-            font-size: 12px;
-            color: #718096;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 4px;
-        }
-
-        .stat-value {
-            font-size: 24px;
-            font-weight: 700;
-            color: #1a202c;
-        }
-
-        .stocks-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 16px;
-        }
-
-        .stock-card {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            transition: transform 0.2s;
-        }
-
-        .stock-card:active {
-            transform: scale(0.98);
-        }
-
-        .stock-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: start;
-            margin-bottom: 12px;
-        }
-
-        .stock-symbol {
-            font-size: 20px;
-            font-weight: 700;
-            color: #1a202c;
-        }
-
-        .stock-name {
-            font-size: 13px;
-            color: #718096;
-            margin-top: 2px;
-        }
-
-        .stock-price {
-            font-size: 24px;
-            font-weight: 700;
-            color: #1a202c;
-            margin-bottom: 8px;
-        }
-
-        .stock-change {
-            display: inline-block;
-            padding: 4px 10px;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 600;
-        }
-
-        .positive {
-            background: #c6f6d5;
-            color: #22543d;
-        }
-
-        .negative {
-            background: #fed7d7;
-            color: #742a2a;
-        }
-
-        .stock-details {
-            margin-top: 16px;
-            padding-top: 16px;
-            border-top: 1px solid #e2e8f0;
-        }
-
-        .detail-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
-            font-size: 14px;
-        }
-
-        .detail-label {
-            color: #718096;
-        }
-
-        .detail-value {
-            font-weight: 600;
-            color: #1a202c;
-        }
-
-        .demo-note {
-            background: #e3f2fd;
-            border-left: 4px solid #2196f3;
-            padding: 12px;
-            margin-top: 12px;
-            border-radius: 4px;
-            font-size: 13px;
-            color: #1565c0;
-        }
-
-        @media (max-width: 640px) {
-            body {
-                padding: 12px;
-            }
-
-            h1 {
-                font-size: 20px;
-            }
-
-            .header {
-                padding: 20px;
-            }
-
-            .stocks-grid {
-                grid-template-columns: 1fr;
-            }
-
-            button {
-                min-width: 120px;
-                padding: 12px 16px;
-                font-size: 15px;
-            }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 16px; }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .header { background: white; border-radius: 16px; padding: 24px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h1 { font-size: 24px; color: #1a202c; margin-bottom: 8px; }
+        .subtitle { color: #718096; font-size: 14px; margin-bottom: 16px; }
+        .api-box { background: #fff5e6; border: 2px solid #ffa500; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+        .api-box input { width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 6px; margin: 8px 0; font-size: 14px; }
+        .filter-box { background: #f7fafc; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+        .filter-row { display: flex; gap: 16px; align-items: center; margin: 12px 0; flex-wrap: wrap; }
+        .filter-row label { font-size: 14px; color: #4a5568; font-weight: 600; }
+        .filter-row input, .filter-row select { padding: 8px 12px; border: 2px solid #e2e8f0; border-radius: 6px; font-size: 14px; }
+        .controls { display: flex; flex-wrap: wrap; gap: 12px; }
+        button { padding: 14px 20px; font-size: 16px; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; transition: 0.2s; flex: 1; min-width: 140px; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-primary { background: #667eea; color: white; }
+        .btn-secondary { background: #e2e8f0; color: #2d3748; }
+        .loading { text-align: center; padding: 40px; color: white; font-size: 18px; }
+        .spinner { border: 4px solid rgba(255,255,255,0.3); border-top: 4px solid white; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 16px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .stats { background: white; border-radius: 16px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 16px; }
+        .stat-item { text-align: center; }
+        .stat-label { font-size: 12px; color: #718096; text-transform: uppercase; margin-bottom: 4px; }
+        .stat-value { font-size: 24px; font-weight: 700; color: #1a202c; }
+        .timestamp { text-align: center; color: white; font-size: 14px; margin-bottom: 16px; padding: 12px; background: rgba(255,255,255,0.1); border-radius: 8px; }
+        .stocks-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+        .stock-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); cursor: pointer; border: 3px solid transparent; }
+        .stock-card:hover { box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
+        .stock-card.up { border-color: #48bb78; }
+        .stock-card.down { border-color: #f56565; }
+        .stock-header { display: flex; justify-content: space-between; margin-bottom: 12px; }
+        .stock-symbol { font-size: 20px; font-weight: 700; color: #1a202c; }
+        .stock-name { font-size: 13px; color: #718096; margin-top: 2px; }
+        .badge { background: #f7fafc; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 700; }
+        .badge.hot { background: #feb2b2; color: #742a2a; }
+        .badge.fire { background: #fc8181; color: #742a2a; }
+        .stock-price { font-size: 24px; font-weight: 700; color: #1a202c; margin-bottom: 8px; }
+        .stock-change { display: inline-block; padding: 6px 12px; border-radius: 6px; font-size: 15px; font-weight: 600; }
+        .positive { background: #c6f6d5; color: #22543d; }
+        .negative { background: #fed7d7; color: #742a2a; }
+        .time { font-size: 12px; color: #718096; margin-top: 8px; }
+        .rating-box { margin-top: 16px; padding-top: 16px; border-top: 1px solid #e2e8f0; }
+        .rating-title { font-size: 13px; color: #4a5568; font-weight: 600; margin-bottom: 8px; }
+        .rating-row { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 6px; }
+        .rating-label { color: #718096; }
+        .rating-value { font-weight: 600; color: #1a202c; }
+        .rating-badge { display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 13px; font-weight: 600; }
+        .rating-buy { background: #c6f6d5; color: #22543d; }
+        .rating-hold { background: #feebc8; color: #7c2d12; }
+        .rating-sell { background: #fed7d7; color: #742a2a; }
+        .details { margin-top: 16px; padding-top: 16px; border-top: 1px solid #e2e8f0; display: none; }
+        .stock-card.expanded .details { display: block; }
+        .detail-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; }
+        .detail-label { color: #718096; }
+        .detail-value { font-weight: 600; color: #1a202c; }
+        .expand-hint { font-size: 12px; color: #718096; text-align: center; margin-top: 12px; }
+        .error { background: white; border-radius: 12px; padding: 20px; margin: 20px 0; color: #c53030; text-align: center; }
+        .no-data { background: white; border-radius: 12px; padding: 40px; text-align: center; color: #718096; grid-column: 1/-1; }
+        @media (max-width: 768px) {
+            body { padding: 12px; }
+            h1 { font-size: 20px; }
+            .header { padding: 20px; }
+            .stocks-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>📊 S&P 500 Stock Analyzer</h1>
-            <div class="subtitle">Top 20 S&P 500 Stocks Monitor</div>
+            <h1>🔥 S&P 500 Movers</h1>
+            <div class="subtitle">Track significant price movements with analyst ratings</div>
             
-            <div class="warning-box">
-                <h3>⚠️ Google Sites Limitation Detected</h3>
-                <p><strong>Problem:</strong> Google Sites blocks external API calls due to CORS security restrictions. This prevents fetching live stock data directly from the page.</p>
-                
-                <p><strong>Solutions (choose one):</strong></p>
-                <p><strong>Option 1 (Recommended):</strong> Download this HTML file and open it directly in your browser (not on Google Sites). It will work perfectly with real API data.</p>
-                
-                <p><strong>Option 2:</strong> Host on a different platform:
-                <br>• GitHub Pages (free, easy)
-                <br>• Netlify (free, drag & drop)
-                <br>• Your own web hosting</p>
-                
-                <p><strong>Option 3:</strong> Use the demo version below with simulated data (works on Google Sites but not real prices)</p>
-                
-                <div class="demo-note">
-                    💡 <strong>Quick Test:</strong> Click "Load Demo Data" below to see how it works with sample data.
+            <div class="api-box" id="apiBox">
+                <h3 style="color: #d97706; font-size: 16px; margin-bottom: 8px;">⚠️ Download Required</h3>
+                <p style="color: #856404; font-size: 14px; margin-bottom: 12px;">This app cannot fetch live data in Claude.ai due to CORS restrictions. <strong>Download this HTML file and open it in your browser for full functionality.</strong></p>
+                <button class="btn-primary" onclick="downloadFile()" style="width: 100%; margin-bottom: 12px;">⬇️ Download HTML File</button>
+                <hr style="margin: 16px 0; border: none; border-top: 1px solid #e2e8f0;">
+                <h4 style="color: #d97706; font-size: 14px; margin-bottom: 8px;">Or test with demo data:</h4>
+                <input type="password" id="apiKey" placeholder="Enter RapidAPI key (optional for demo)">
+                <button class="btn-secondary" onclick="loadDemo()" style="width: 100%; margin-top: 8px;">📊 Load Demo Data</button>
+                <small style="color: #718096; font-size: 12px; display: block; margin-top: 8px;">Demo shows sample data. For real prices, download the file!</small>
+            </div>
+
+            <div class="filter-box">
+                <h3 style="font-size: 16px; margin-bottom: 12px;">Settings</h3>
+                <div class="filter-row">
+                    <label>Stocks:</label>
+                    <select id="universe">
+                        <option value="65">Top 65</option>
+                        <option value="100">Top 100</option>
+                        <option value="200">Top 200</option>
+                        <option value="500">Full 500</option>
+                    </select>
+                    <span id="info" style="font-size: 13px; color: #718096;"></span>
+                </div>
+                <div class="filter-row">
+                    <label>Min Move:</label>
+                    <input type="number" id="minMove" value="3" min="0" max="100" step="0.5" style="width: 100px;">
+                    <span style="font-size: 14px; color: #718096;">%</span>
+                    <label style="margin-left: 20px;">Sort:</label>
+                    <select id="sort">
+                        <option value="highest">Highest</option>
+                        <option value="lowest">Lowest</option>
+                        <option value="gainers">Gainers</option>
+                        <option value="losers">Losers</option>
+                    </select>
                 </div>
             </div>
 
             <div class="controls">
-                <button class="btn-primary" onclick="loadDemoData()">📊 Load Demo Data</button>
-                <button class="btn-secondary" onclick="showInfo()">ℹ️ Info</button>
-                <button class="btn-secondary" onclick="downloadAsFile()">⬇️ Download HTML</button>
+                <button class="btn-primary" id="refreshBtn" disabled>🔄 Refresh</button>
+                <button class="btn-secondary" id="filterBtn">🔍 Filter</button>
+                <button class="btn-secondary" id="infoBtn">ℹ️ Info</button>
             </div>
         </div>
 
+        <div id="timestamp" class="timestamp" style="display: none;"></div>
         <div id="stats" class="stats" style="display: none;">
             <div class="stats-grid">
-                <div class="stat-item">
-                    <div class="stat-label">Loaded</div>
-                    <div class="stat-value" id="loadedCount">0</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-label">Avg Change</div>
-                    <div class="stat-value" id="avgChange">0%</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-label">Gainers</div>
-                    <div class="stat-value" id="gainers">0</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-label">Losers</div>
-                    <div class="stat-value" id="losers">0</div>
-                </div>
+                <div class="stat-item"><div class="stat-label">Movers</div><div class="stat-value" id="sMovers">0</div></div>
+                <div class="stat-item"><div class="stat-label">Gainers</div><div class="stat-value" id="sGainers">0</div></div>
+                <div class="stat-item"><div class="stat-label">Losers</div><div class="stat-value" id="sLosers">0</div></div>
+                <div class="stat-item"><div class="stat-label">Biggest</div><div class="stat-value" id="sBiggest" style="font-size: 18px;">-</div></div>
             </div>
         </div>
-
+        <div id="loading" class="loading" style="display: none;"><div class="spinner"></div><div id="loadTxt">Loading...</div></div>
+        <div id="error" class="error" style="display: none;"></div>
         <div id="stocks" class="stocks-grid"></div>
     </div>
 
     <script>
-        const TOP_20_SP500 = [
-            { symbol: 'AAPL', name: 'Apple Inc.', basePrice: 175 },
-            { symbol: 'MSFT', name: 'Microsoft Corporation', basePrice: 380 },
-            { symbol: 'NVDA', name: 'NVIDIA Corporation', basePrice: 495 },
-            { symbol: 'AMZN', name: 'Amazon.com Inc.', basePrice: 155 },
-            { symbol: 'GOOGL', name: 'Alphabet Inc.', basePrice: 140 },
-            { symbol: 'META', name: 'Meta Platforms Inc.', basePrice: 350 },
-            { symbol: 'TSLA', name: 'Tesla Inc.', basePrice: 245 },
-            { symbol: 'BRK.B', name: 'Berkshire Hathaway', basePrice: 365 },
-            { symbol: 'UNH', name: 'UnitedHealth Group', basePrice: 520 },
-            { symbol: 'XOM', name: 'Exxon Mobil Corporation', basePrice: 110 },
-            { symbol: 'JPM', name: 'JPMorgan Chase & Co.', basePrice: 155 },
-            { symbol: 'JNJ', name: 'Johnson & Johnson', basePrice: 160 },
-            { symbol: 'V', name: 'Visa Inc.', basePrice: 260 },
-            { symbol: 'PG', name: 'Procter & Gamble', basePrice: 155 },
-            { symbol: 'MA', name: 'Mastercard Inc.', basePrice: 420 },
-            { symbol: 'HD', name: 'Home Depot Inc.', basePrice: 340 },
-            { symbol: 'CVX', name: 'Chevron Corporation', basePrice: 155 },
-            { symbol: 'MRK', name: 'Merck & Co. Inc.', basePrice: 105 },
-            { symbol: 'ABBV', name: 'AbbVie Inc.', basePrice: 165 },
-            { symbol: 'LLY', name: 'Eli Lilly and Company', basePrice: 580 }
-        ];
+        var top65 = ['AAPL','MSFT','NVDA','AMZN','GOOGL','META','TSLA','BRK-B','UNH','XOM','JPM','JNJ','V','PG','MA','HD','CVX','MRK','ABBV','LLY','AVGO','COST','PEP','KO','ADBE','WMT','TMO','CSCO','ACN','MCD','ABT','NFLX','CRM','DHR','NKE','VZ','TXN','DIS','INTC','NEE','UPS','PM','BMY','CMCSA','WFC','HON','UNP','AMD','RTX','QCOM','COP','AMGN','LOW','BA','SBUX','CAT','SPGI','DE','LMT','GS','INTU','GE','BLK','MDLZ','GILD','AXP'];
+        var top100 = top65.concat(['BKNG','TJX','MMC','SYK','PLD','C','ADI','REGN','CVS','MS','VRTX','ISRG','ZTS','CB','NOW','SO','DUK','ETN','CI','SCHW','PGR','BSX','AON','ITW','MU','LRCX','SLB','EOG','CME','EQIX','USB','MMM','BDX','APD']);
+        var top200 = top100.concat(['NOC','CL','GM','MCO','WM','FI','NSC','PSA','PCAR','ICE','EMR','MCK','PH','MAR','GD','AJG','KLAC','APH','AIG','ROP','NXPI','TGT','ADSK','SHW','ANET','CMG','ECL','NEM','KMI','AMP','AFL','CDNS','HUM','ORLY','PSX','SPG','PAYX','AEP','TRV','JCI','MSCI','ROST','D','SNPS','TEL','AZO','RSG','SRE','O','FTNT','CARR','WELL','BK','ALL','KMB','MSI','CTAS','DHI','PCG','TFC','GWW','YUM','HSY','LHX','PRU','HLT','IDXX','FAST','EA','EW','GIS','IT','SYY','ODFL','DLR','DD','XYL','CTVA','ACGL','AME','RMD','MTD','PPG','IQV','VMC','GLW','DXCM','ANSS','BKR','CPRT','A','KEYS','MLM','ROK']);
+        var top500 = top200.concat(['CDW','VRSK','EXC','MPWR','TSCO','CBRE','BIIB','KR','HPQ','AVB','WST','SBAC','EXR','FANG','STZ','EFX','URI','WBD','HPE','INVH','FTV','FITB','MTB','XEL','TTWO','TROW','ED','WAB','AXON','ALGN','GPN','WY','HAL','ETR','APTV','CNP','PTC','ARE','ES','CAH','TDG','CHD','WBA','IFF','LEN','AWK','PPL','LVS','RF']);
 
-        let stocksData = [];
+        var key = '';
+        var allData = [];
+        var current = top65;
 
-        function loadDemoData() {
-            const stats = document.getElementById('stats');
-            const stocksContainer = document.getElementById('stocks');
+        document.getElementById('refreshBtn').onclick = load;
+        document.getElementById('filterBtn').onclick = filter;
+        document.getElementById('infoBtn').onclick = info;
+        document.getElementById('universe').onchange = updateInfo;
 
-            stocksContainer.innerHTML = '';
-            stocksData = [];
+        window.onload = function() {
+            updateInfo();
+        };
 
-            for (let stock of TOP_20_SP500) {
-                const changePercent = (Math.random() - 0.5) * 8;
-                const price = stock.basePrice * (1 + changePercent / 100);
-                const change = price - stock.basePrice;
-                
-                const stockData = {
-                    symbol: stock.symbol,
-                    name: stock.name,
+        function downloadFile() {
+            var html = document.documentElement.outerHTML;
+            var blob = new Blob([html], { type: 'text/html' });
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = 'sp500-movers-tracker.html';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            alert('✅ Downloaded!\n\nTo use:\n1. Find the downloaded HTML file\n2. Double-click to open in browser\n3. Enter your RapidAPI key\n4. Click "Save & Load"\n\nIt will fetch real stock data!');
+        }
+
+        function loadDemo() {
+            document.getElementById('apiBox').style.display = 'none';
+            document.getElementById('refreshBtn').disabled = false;
+            allData = generateDemoData();
+            updateTime();
+            filter();
+            alert('📊 Demo data loaded!\n\nThis is simulated data for demonstration.\n\nFor REAL prices:\n1. Click "Download HTML File"\n2. Open the downloaded file\n3. Enter your API key\n4. Get live market data!');
+        }
+
+        function generateDemoData() {
+            var demo = [];
+            var baseNames = {
+                'AAPL': 'Apple Inc.', 'MSFT': 'Microsoft', 'NVDA': 'NVIDIA', 'AMZN': 'Amazon', 'GOOGL': 'Alphabet',
+                'META': 'Meta Platforms', 'TSLA': 'Tesla', 'BRK-B': 'Berkshire', 'UNH': 'UnitedHealth', 'XOM': 'Exxon',
+                'JPM': 'JPMorgan', 'JNJ': 'Johnson & Johnson', 'V': 'Visa', 'PG': 'Procter & Gamble', 'MA': 'Mastercard',
+                'HD': 'Home Depot', 'CVX': 'Chevron', 'MRK': 'Merck', 'ABBV': 'AbbVie', 'LLY': 'Eli Lilly'
+            };
+            var basePrices = {
+                'AAPL': 175, 'MSFT': 380, 'NVDA': 495, 'AMZN': 155, 'GOOGL': 140,
+                'META': 350, 'TSLA': 245, 'BRK-B': 365, 'UNH': 520, 'XOM': 110,
+                'JPM': 155, 'JNJ': 160, 'V': 260, 'PG': 155, 'MA': 420,
+                'HD': 340, 'CVX': 155, 'MRK': 105, 'ABBV': 165, 'LLY': 580
+            };
+            
+            for (var sym in baseNames) {
+                var pctChange = (Math.random() - 0.5) * 10;
+                var price = basePrices[sym] * (1 + pctChange / 100);
+                var change = price - basePrices[sym];
+                demo.push({
+                    symbol: sym,
+                    name: baseNames[sym],
                     price: price,
                     change: change,
-                    changePercent: changePercent,
+                    changePct: pctChange,
                     volume: Math.floor(Math.random() * 80000000 + 20000000),
-                    marketCap: price * (Math.random() * 800000000 + 500000000)
-                };
-                
-                stocksData.push(stockData);
-                displayStock(stockData);
-            }
-
-            stats.style.display = 'block';
-            updateStats();
-        }
-
-        function displayStock(stock) {
-            const stocksContainer = document.getElementById('stocks');
-            const isPositive = stock.changePercent >= 0;
-            
-            const card = document.createElement('div');
-            card.className = 'stock-card';
-            card.innerHTML = `
-                <div class="stock-header">
-                    <div>
-                        <div class="stock-symbol">${stock.symbol}</div>
-                        <div class="stock-name">${stock.name}</div>
-                    </div>
-                </div>
-                <div class="stock-price">$${stock.price.toFixed(2)}</div>
-                <div class="stock-change ${isPositive ? 'positive' : 'negative'}">
-                    ${isPositive ? '▲' : '▼'} ${Math.abs(stock.changePercent).toFixed(2)}%
-                </div>
-                <div class="stock-details">
-                    <div class="detail-row">
-                        <span class="detail-label">Change</span>
-                        <span class="detail-value">${isPositive ? '+' : ''}$${stock.change.toFixed(2)}</span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Volume</span>
-                        <span class="detail-value">${formatVolume(stock.volume)}</span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Market Cap</span>
-                        <span class="detail-value">${formatMarketCap(stock.marketCap)}</span>
-                    </div>
-                </div>
-            `;
-            
-            stocksContainer.appendChild(card);
-        }
-
-        function updateStats() {
-            const loaded = stocksData.length;
-            const avgChange = stocksData.reduce((sum, s) => sum + s.changePercent, 0) / loaded;
-            const gainers = stocksData.filter(s => s.changePercent > 0).length;
-            const losers = stocksData.filter(s => s.changePercent < 0).length;
-
-            document.getElementById('loadedCount').textContent = loaded;
-            document.getElementById('avgChange').textContent = avgChange.toFixed(2) + '%';
-            document.getElementById('avgChange').style.color = avgChange >= 0 ? '#22543d' : '#742a2a';
-            document.getElementById('gainers').textContent = gainers;
-            document.getElementById('losers').textContent = losers;
-        }
-
-        function formatVolume(volume) {
-            if (volume >= 1000000000) return (volume / 1000000000).toFixed(2) + 'B';
-            if (volume >= 1000000) return (volume / 1000000).toFixed(2) + 'M';
-            if (volume >= 1000) return (volume / 1000).toFixed(2) + 'K';
-            return volume.toString();
-        }
-
-        function formatMarketCap(marketCap) {
-            const cap = parseFloat(marketCap);
-            if (cap >= 1000000000000) return '$' + (cap / 1000000000000).toFixed(2) + 'T';
-            if (cap >= 1000000000) return '$' + (cap / 1000000000).toFixed(2) + 'B';
-            if (cap >= 1000000) return '$' + (cap / 1000000).toFixed(2) + 'M';
-            return '$' + cap.toFixed(0);
-        }
-
-        function downloadAsFile() {
-            // Create the full HTML with API integration
-            const htmlContent = `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>S&P 500 Stock Analyzer - API Version</title>
-    <style>${document.querySelector('style').textContent}</style>
-</head>
-<body>
-    ${document.querySelector('.container').outerHTML.replace(/Load Demo Data|Download HTML/g, match => match === 'Load Demo Data' ? 'Refresh Real Data' : 'Info')}
-    <script>
-        // Full version with real API integration
-        const API_KEY = 'YOUR_RAPIDAPI_KEY_HERE'; // Replace with your actual key
-        
-        const TOP_20_SP500 = ['AAPL','MSFT','NVDA','AMZN','GOOGL','META','TSLA','BRK-B','UNH','XOM','JPM','JNJ','V','PG','MA','HD','CVX','MRK','ABBV','LLY'];
-        
-        let stocksData = [];
-        
-        async function loadDemoData() {
-            const stats = document.getElementById('stats');
-            const stocksContainer = document.getElementById('stocks');
-            stocksContainer.innerHTML = '<div style="text-align:center;padding:40px;color:#1a202c;background:white;border-radius:12px;">Loading real stock data...</div>';
-            
-            try {
-                const symbolsParam = TOP_20_SP500.join(',');
-                const url = \`https://apidojo-yahoo-finance-v1.p.rapidapi.com/market/v2/get-quotes?region=US&symbols=\${symbolsParam}\`;
-                
-                const response = await fetch(url, {
-                    method: 'GET',
-                    headers: {
-                        'X-RapidAPI-Key': API_KEY,
-                        'X-RapidAPI-Host': 'apidojo-yahoo-finance-v1.p.rapidapi.com'
-                    }
+                    marketCap: price * (Math.random() * 800000000 + 500000000),
+                    dayHigh: price * 1.02,
+                    dayLow: price * 0.98,
+                    yearHigh: price * 1.25,
+                    yearLow: price * 0.75,
+                    pe: Math.random() * 30 + 10,
+                    eps: price / (Math.random() * 30 + 10),
+                    time: Date.now() / 1000,
+                    target: price * (1 + (Math.random() - 0.3) * 0.3),
+                    rating: ['buy', 'hold', 'outperform'][Math.floor(Math.random() * 3)]
                 });
-                
-                if (!response.ok) throw new Error('API Error: ' + response.status);
-                
-                const data = await response.json();
-                stocksContainer.innerHTML = '';
-                stocksData = [];
-                
-                for (const quote of data.quoteResponse.result) {
-                    const stockData = {
-                        symbol: quote.symbol,
-                        name: quote.shortName || quote.symbol,
-                        price: quote.regularMarketPrice || 0,
-                        change: quote.regularMarketChange || 0,
-                        changePercent: quote.regularMarketChangePercent || 0,
-                        volume: quote.regularMarketVolume || 0,
-                        marketCap: quote.marketCap || 0
-                    };
-                    stocksData.push(stockData);
-                    displayStock(stockData);
+            }
+            return demo;
+        }
+
+        function updateInfo() {
+            var val = parseInt(document.getElementById('universe').value);
+            if (val === 65) current = top65;
+            else if (val === 100) current = top100;
+            else if (val === 200) current = top200;
+            else if (val === 500) current = top500;
+            var calls = Math.ceil(current.length / 50);
+            document.getElementById('info').textContent = current.length + ' stocks (~' + calls + ' calls)';
+            localStorage.setItem('stock_universe', val);
+        }
+
+        function saveKey() {
+            var input = document.getElementById('apiKey').value.trim();
+            if (!input) { alert('Enter API key'); return; }
+            key = input;
+            localStorage.setItem('rapidapi_key', key);
+            document.getElementById('refreshBtn').disabled = false;
+            document.getElementById('apiBox').style.display = 'none';
+            load();
+        }
+
+        async function load() {
+            if (!key) { alert('Enter API key'); return; }
+            var loading = document.getElementById('loading');
+            var loadTxt = document.getElementById('loadTxt');
+            var error = document.getElementById('error');
+            var btn = document.getElementById('refreshBtn');
+
+            loading.style.display = 'block';
+            error.style.display = 'none';
+            document.getElementById('stocks').innerHTML = '';
+            allData = [];
+            btn.disabled = true;
+
+            try {
+                loadTxt.textContent = 'Scanning ' + current.length + ' stocks...';
+                var size = 50;
+                for (var i = 0; i < current.length; i += size) {
+                    var batch = current.slice(i, i + size);
+                    var syms = batch.join(',');
+                    var url = 'https://apidojo-yahoo-finance-v1.p.rapidapi.com/market/v2/get-quotes?region=US&symbols=' + syms;
+                    var batchNum = Math.floor(i / size) + 1;
+                    var total = Math.ceil(current.length / size);
+                    var pct = Math.round((batchNum / total) * 100);
+                    loadTxt.textContent = 'Batch ' + batchNum + '/' + total + ' (' + pct + '%)';
+                    
+                    var res = await fetch(url, {
+                        method: 'GET',
+                        headers: { 'X-RapidAPI-Key': key, 'X-RapidAPI-Host': 'apidojo-yahoo-finance-v1.p.rapidapi.com' }
+                    }).catch(function(err) {
+                        throw new Error('Network error - Are you on Google Sites? This app needs to run from a downloaded HTML file or different host. Details: ' + err.message);
+                    });
+
+                    if (!res.ok) {
+                        if (res.status === 403) throw new Error('Invalid API key or not subscribed to Yahoo Finance API at RapidAPI');
+                        if (res.status === 429) throw new Error('Rate limit exceeded - wait a few minutes');
+                        throw new Error('API error: ' + res.status + ' - Check your subscription at rapidapi.com');
+                    }
+
+                    var data = await res.json();
+                    if (data.quoteResponse && data.quoteResponse.result) {
+                        for (var j = 0; j < data.quoteResponse.result.length; j++) {
+                            var q = data.quoteResponse.result[j];
+                            allData.push({
+                                symbol: q.symbol,
+                                name: q.shortName || q.symbol,
+                                price: q.regularMarketPrice || 0,
+                                change: q.regularMarketChange || 0,
+                                changePct: q.regularMarketChangePercent || 0,
+                                volume: q.regularMarketVolume || 0,
+                                marketCap: q.marketCap || 0,
+                                dayHigh: q.regularMarketDayHigh || 0,
+                                dayLow: q.regularMarketDayLow || 0,
+                                yearHigh: q.fiftyTwoWeekHigh || 0,
+                                yearLow: q.fiftyTwoWeekLow || 0,
+                                pe: q.trailingPE || 0,
+                                eps: q.epsTrailingTwelveMonths || 0,
+                                time: q.regularMarketTime || Date.now() / 1000,
+                                target: q.targetMeanPrice || null,
+                                rating: q.averageAnalystRating || 'N/A'
+                            });
+                        }
+                    }
+                    await new Promise(function(r) { setTimeout(r, 200); });
                 }
-                
-                stats.style.display = 'block';
-                updateStats();
-            } catch (err) {
-                stocksContainer.innerHTML = '<div style="text-align:center;padding:40px;color:#c53030;background:white;border-radius:12px;">Error: ' + err.message + '<br><small>Make sure to replace YOUR_RAPIDAPI_KEY_HERE with your actual API key</small></div>';
+
+                loading.style.display = 'none';
+                updateTime();
+                filter();
+                btn.disabled = false;
+            } catch (e) {
+                loading.style.display = 'none';
+                error.style.display = 'block';
+                error.innerHTML = '<strong>Error:</strong> ' + e.message;
+                btn.disabled = false;
             }
         }
-        
-        function displayStock(stock) {
-            const stocksContainer = document.getElementById('stocks');
-            const isPositive = stock.changePercent >= 0;
-            const card = document.createElement('div');
-            card.className = 'stock-card';
-            card.innerHTML = \`
-                <div class="stock-header">
-                    <div>
-                        <div class="stock-symbol">\${stock.symbol}</div>
-                        <div class="stock-name">\${stock.name}</div>
-                    </div>
-                </div>
-                <div class="stock-price">$\${stock.price.toFixed(2)}</div>
-                <div class="stock-change \${isPositive ? 'positive' : 'negative'}">
-                    \${isPositive ? '▲' : '▼'} \${Math.abs(stock.changePercent).toFixed(2)}%
-                </div>
-                <div class="stock-details">
-                    <div class="detail-row">
-                        <span class="detail-label">Change</span>
-                        <span class="detail-value">\${isPositive ? '+' : ''}$\${stock.change.toFixed(2)}</span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Volume</span>
-                        <span class="detail-value">\${formatVolume(stock.volume)}</span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Market Cap</span>
-                        <span class="detail-value">\${formatMarketCap(stock.marketCap)}</span>
-                    </div>
-                </div>\`;
-            stocksContainer.appendChild(card);
-        }
-        
-        function updateStats() {
-            const loaded = stocksData.length;
-            const avgChange = stocksData.reduce((sum, s) => sum + s.changePercent, 0) / loaded;
-            const gainers = stocksData.filter(s => s.changePercent > 0).length;
-            const losers = stocksData.filter(s => s.changePercent < 0).length;
-            document.getElementById('loadedCount').textContent = loaded;
-            document.getElementById('avgChange').textContent = avgChange.toFixed(2) + '%';
-            document.getElementById('avgChange').style.color = avgChange >= 0 ? '#22543d' : '#742a2a';
-            document.getElementById('gainers').textContent = gainers;
-            document.getElementById('losers').textContent = losers;
-        }
-        
-        function formatVolume(volume) {
-            if (volume >= 1000000000) return (volume / 1000000000).toFixed(2) + 'B';
-            if (volume >= 1000000) return (volume / 1000000).toFixed(2) + 'M';
-            if (volume >= 1000) return (volume / 1000).toFixed(2) + 'K';
-            return volume.toString();
-        }
-        
-        function formatMarketCap(marketCap) {
-            const cap = parseFloat(marketCap);
-            if (cap >= 1000000000000) return '$' + (cap / 1000000000000).toFixed(2) + 'T';
-            if (cap >= 1000000000) return '$' + (cap / 1000000000).toFixed(2) + 'B';
-            if (cap >= 1000000) return '$' + (cap / 1000000).toFixed(2) + 'M';
-            return '$' + cap.toFixed(0);
-        }
-        
-        function showInfo() {
-            alert('S&P 500 Stock Analyzer\\n\\nThis version includes real API integration.\\n\\nTo use:\\n1. Get API key from rapidapi.com/apidojo/api/yahoo-finance1\\n2. Replace YOUR_RAPIDAPI_KEY_HERE in the code\\n3. Open this file in any browser');
-        }
-        
-        window.addEventListener('load', loadDemoData);
-    <\/script>
-</body>
-</html>`;
 
-            const blob = new Blob([htmlContent], { type: 'text/html' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'sp500-analyzer-with-api.html';
-            a.click();
-            URL.revokeObjectURL(url);
+        function filter() {
+            var min = parseFloat(document.getElementById('minMove').value) || 3;
+            var sortType = document.getElementById('sort').value;
+            var movers = allData.filter(function(s) { return Math.abs(s.changePct) >= min; });
             
-            alert('✅ Downloaded!\n\nTo use with real data:\n1. Open the downloaded HTML file in a text editor\n2. Replace YOUR_RAPIDAPI_KEY_HERE with your actual API key\n3. Open it in any browser\n\nIt will fetch real stock prices!');
+            if (sortType === 'gainers') movers = movers.filter(function(s) { return s.changePct > 0; });
+            if (sortType === 'losers') movers = movers.filter(function(s) { return s.changePct < 0; });
+            
+            if (sortType === 'highest') movers.sort(function(a,b) { return Math.abs(b.changePct) - Math.abs(a.changePct); });
+            else if (sortType === 'lowest') movers.sort(function(a,b) { return Math.abs(a.changePct) - Math.abs(b.changePct); });
+            else if (sortType === 'gainers') movers.sort(function(a,b) { return b.changePct - a.changePct; });
+            else if (sortType === 'losers') movers.sort(function(a,b) { return a.changePct - b.changePct; });
+            
+            show(movers);
         }
 
-        function showInfo() {
-            alert('📊 S&P 500 Stock Analyzer\n\n' +
-                  '⚠️ Google Sites CORS Limitation\n' +
-                  'Google Sites blocks external API calls for security.\n\n' +
-                  'Solutions:\n' +
-                  '1. Download the HTML file (button above)\n' +
-                  '2. Host on GitHub Pages, Netlify, or your server\n' +
-                  '3. Use demo data (works on Google Sites)\n\n' +
-                  'The downloaded version works with real Yahoo Finance data!');
+        function show(movers) {
+            var container = document.getElementById('stocks');
+            var stats = document.getElementById('stats');
+            container.innerHTML = '';
+            
+            if (movers.length === 0) {
+                container.innerHTML = '<div class="no-data"><h2 style="color: #4a5568; margin-bottom: 8px;">No Movers</h2><p>Lower the threshold</p></div>';
+                stats.style.display = 'none';
+                return;
+            }
+            
+            stats.style.display = 'block';
+            updateStats(movers);
+            
+            for (var i = 0; i < movers.length; i++) showStock(movers[i]);
         }
 
-        // Auto-load demo data on page load
-        window.addEventListener('load', loadDemoData);
+        function showStock(s) {
+            var container = document.getElementById('stocks');
+            var isPos = s.changePct >= 0;
+            var abs = Math.abs(s.changePct);
+            var level = abs >= 7 ? 'fire' : abs >= 5 ? 'hot' : '';
+            
+            var card = document.createElement('div');
+            card.className = 'stock-card ' + (isPos ? 'up' : 'down');
+            
+            var time = new Date(s.time * 1000);
+            var timeStr = time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
+            
+            var ratingHtml = getRating(s.rating, s.target, s.price);
+            
+            var html = '<div class="stock-header"><div><div class="stock-symbol">' + s.symbol + '</div><div class="stock-name">' + s.name + '</div></div>';
+            if (level) html += '<span class="badge ' + level + '">🔥</span>';
+            html += '</div><div class="stock-price">$' + s.price.toFixed(2) + '</div>';
+            html += '<div class="stock-change ' + (isPos ? 'positive' : 'negative') + '">';
+            html += (isPos ? '▲' : '▼') + ' ' + abs.toFixed(2) + '% (' + (isPos ? '+' : '') + '$' + s.change.toFixed(2) + ')</div>';
+            html += '<div class="time">⏰ ' + timeStr + '</div>' + ratingHtml;
+            html += '<div class="details">';
+            html += '<div class="detail-row"><span class="detail-label">Volume</span><span class="detail-value">' + formatVol(s.volume) + '</span></div>';
+            html += '<div class="detail-row"><span class="detail-label">Cap</span><span class="detail-value">' + formatCap(s.marketCap) + '</span></div>';
+            html += '<div class="detail-row"><span class="detail-label">Day</span><span class="detail-value">$' + s.dayLow.toFixed(2) + '-$' + s.dayHigh.toFixed(2) + '</span></div>';
+            html += '<div class="detail-row"><span class="detail-label">52W</span><span class="detail-value">$' + s.yearLow.toFixed(2) + '-$' + s.yearHigh.toFixed(2) + '</span></div>';
+            if (s.pe > 0) html += '<div class="detail-row"><span class="detail-label">P/E</span><span class="detail-value">' + s.pe.toFixed(2) + '</span></div>';
+            if (s.eps > 0) html += '<div class="detail-row"><span class="detail-label">EPS</span><span class="detail-value">$' + s.eps.toFixed(2) + '</span></div>';
+            html += '</div><div class="expand-hint">Click for details</div>';
+            
+            card.innerHTML = html;
+            card.onclick = function() {
+                card.classList.toggle('expanded');
+                var hint = card.querySelector('.expand-hint');
+                hint.textContent = card.classList.contains('expanded') ? 'Click to collapse' : 'Click for details';
+            };
+            container.appendChild(card);
+        }
+
+        function getRating(key, target, price) {
+            var map = {
+                'buy': { txt: 'Strong Buy', cls: 'rating-buy' },
+                'outperform': { txt: 'Buy', cls: 'rating-buy' },
+                'hold': { txt: 'Hold', cls: 'rating-hold' },
+                'underperform': { txt: 'Sell', cls: 'rating-sell' },
+                'sell': { txt: 'Strong Sell', cls: 'rating-sell' }
+            };
+            var r = map[key ? key.toLowerCase() : ''] || { txt: 'N/A', cls: 'rating-hold' };
+            var tgt = '';
+            if (target && target > 0) {
+                var up = ((target - price) / price * 100).toFixed(1);
+                tgt = '<div class="rating-row"><span class="rating-label">Target</span><span class="rating-value">$' + target.toFixed(2) + ' (' + (up > 0 ? '+' : '') + up + '%)</span></div>';
+            }
+            return '<div class="rating-box"><div class="rating-title">📊 Analyst</div><div class="rating-row"><span class="rating-label">Rating</span><span class="rating-badge ' + r.cls + '">' + r.txt + '</span></div>' + tgt + '</div>';
+        }
+
+        function updateStats(movers) {
+            var gain = movers.filter(function(s) { return s.changePct > 0; }).length;
+            var loss = movers.filter(function(s) { return s.changePct < 0; }).length;
+            var sorted = movers.slice().sort(function(a,b) { return Math.abs(b.changePct) - Math.abs(a.changePct); });
+            var big = sorted[0];
+            document.getElementById('sMovers').textContent = movers.length;
+            document.getElementById('sGainers').textContent = gain;
+            document.getElementById('sLosers').textContent = loss;
+            document.getElementById('sBiggest').textContent = big ? big.symbol + ' ' + (big.changePct > 0 ? '+' : '') + big.changePct.toFixed(2) + '%' : '-';
+        }
+
+        function updateTime() {
+            var now = new Date();
+            var str = now.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
+            document.getElementById('timestamp').textContent = '📅 Updated: ' + str;
+            document.getElementById('timestamp').style.display = 'block';
+        }
+
+        function formatVol(v) {
+            if (v >= 1e9) return (v / 1e9).toFixed(2) + 'B';
+            if (v >= 1e6) return (v / 1e6).toFixed(2) + 'M';
+            if (v >= 1e3) return (v / 1e3).toFixed(2) + 'K';
+            return v.toString();
+        }
+
+        function formatCap(c) {
+            if (c >= 1e12) return '$' + (c / 1e12).toFixed(2) + 'T';
+            if (c >= 1e9) return '$' + (c / 1e9).toFixed(2) + 'B';
+            if (c >= 1e6) return '$' + (c / 1e6).toFixed(2) + 'M';
+            return '$' + c.toFixed(0);
+        }
+
+        function info() {
+            alert('S&P 500 Movers\n\nFeatures:\n- Scan 65-500 stocks\n- Filter by movement %\n- Real-time timestamps\n- Analyst ratings\n- Click cards for details\n\nFree tier: 500 calls/month\n\nMovement:\n🔥 Hot = 5%+\n🔥 Fire = 7%+');
+        }
     </script>
 </body>
 </html>
