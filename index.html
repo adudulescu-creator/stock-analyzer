@@ -160,7 +160,17 @@
         document.getElementById('universe').onchange = updateInfo;
 
         window.onload = function() {
+            var saved = localStorage.getItem('rapidapi_key');
+            var savedU = localStorage.getItem('stock_universe');
+            if (savedU) document.getElementById('universe').value = savedU;
             updateInfo();
+            if (saved) {
+                key = saved;
+                document.getElementById('apiKey').value = saved;
+                document.getElementById('refreshBtn').disabled = false;
+                document.getElementById('apiBox').style.display = 'none';
+                load();
+            }
         };
 
         function downloadFile() {
