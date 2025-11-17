@@ -1,17 +1,9 @@
-        function saveKey() {
-            var input = document.getElementById('apiKey').value.trim();
-            if (!input) { alert('Enter API key'); return; }
-            key = input;
-            localStorage.setItem('rapidapi_key', key);
-            document.getElementById('refreshBtn').disabled = false;
-            document.getElementById('apiBox').style.display = 'none';
-            load();
-        }<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>S&P 500 Movers</title>
+    <title>S&P 500 Movers Tracker</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 16px; }
@@ -72,6 +64,7 @@
         .expand-hint { font-size: 12px; color: #718096; text-align: center; margin-top: 12px; }
         .error { background: white; border-radius: 12px; padding: 20px; margin: 20px 0; color: #c53030; text-align: center; }
         .no-data { background: white; border-radius: 12px; padding: 40px; text-align: center; color: #718096; grid-column: 1/-1; }
+        .success { background: #c6f6d5; color: #22543d; padding: 12px; border-radius: 8px; margin-top: 8px; font-size: 14px; }
         @media (max-width: 768px) {
             body { padding: 12px; }
             h1 { font-size: 20px; }
@@ -83,50 +76,49 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🔥 S&P 500 Movers</h1>
-            <div class="subtitle">Track significant price movements with analyst ratings</div>
+            <h1>🔥 S&P 500 Significant Movers</h1>
+            <div class="subtitle">Real-time tracking with analyst ratings and price targets</div>
             
             <div class="api-box" id="apiBox">
-                <h3 style="color: #d97706; font-size: 16px; margin-bottom: 8px;">⚠️ Download Required</h3>
-                <p style="color: #856404; font-size: 14px; margin-bottom: 12px;">This app cannot fetch live data in Claude.ai due to CORS restrictions. <strong>Download this HTML file and open it in your browser for full functionality.</strong></p>
-                <button class="btn-primary" onclick="downloadFile()" style="width: 100%; margin-bottom: 12px;">⬇️ Download HTML File</button>
-                <hr style="margin: 16px 0; border: none; border-top: 1px solid #e2e8f0;">
-                <h4 style="color: #d97706; font-size: 14px; margin-bottom: 8px;">Or test with demo data:</h4>
-                <input type="password" id="apiKey" placeholder="Enter RapidAPI key (optional for demo)">
-                <button class="btn-secondary" onclick="loadDemo()" style="width: 100%; margin-top: 8px;">📊 Load Demo Data</button>
-                <small style="color: #718096; font-size: 12px; display: block; margin-top: 8px;">Demo shows sample data. For real prices, download the file!</small>
+                <h3 style="color: #d97706; font-size: 16px; margin-bottom: 8px;">🔑 Enter Your RapidAPI Key</h3>
+                <input type="password" id="apiKey" placeholder="Paste your RapidAPI key here...">
+                <small style="color: #718096; font-size: 12px; display: block; margin-bottom: 8px;">
+                    Get free key: <a href="https://rapidapi.com/apidojo/api/yahoo-finance1" target="_blank" style="color: #0066cc;">rapidapi.com/apidojo/api/yahoo-finance1</a>
+                </small>
+                <button class="btn-primary" onclick="saveKey()" style="width: 100%;">💾 Save Key & Load Data</button>
+                <div id="savedMsg" style="display: none;" class="success">✅ API key saved! Loading data...</div>
             </div>
 
             <div class="filter-box">
-                <h3 style="font-size: 16px; margin-bottom: 12px;">Settings</h3>
+                <h3 style="font-size: 16px; margin-bottom: 12px;">⚙️ Settings</h3>
                 <div class="filter-row">
-                    <label>Stocks:</label>
+                    <label>Stock Universe:</label>
                     <select id="universe">
-                        <option value="65">Top 65</option>
+                        <option value="65">Top 65 (Fast)</option>
                         <option value="100">Top 100</option>
                         <option value="200">Top 200</option>
-                        <option value="500">Full 500</option>
+                        <option value="500">Full S&P 500</option>
                     </select>
                     <span id="info" style="font-size: 13px; color: #718096;"></span>
                 </div>
                 <div class="filter-row">
-                    <label>Min Move:</label>
+                    <label>Min Movement:</label>
                     <input type="number" id="minMove" value="3" min="0" max="100" step="0.5" style="width: 100px;">
                     <span style="font-size: 14px; color: #718096;">%</span>
-                    <label style="margin-left: 20px;">Sort:</label>
+                    <label style="margin-left: 20px;">Sort By:</label>
                     <select id="sort">
-                        <option value="highest">Highest</option>
-                        <option value="lowest">Lowest</option>
-                        <option value="gainers">Gainers</option>
-                        <option value="losers">Losers</option>
+                        <option value="highest">Highest Movement</option>
+                        <option value="lowest">Lowest Movement</option>
+                        <option value="gainers">Gainers Only</option>
+                        <option value="losers">Losers Only</option>
                     </select>
                 </div>
             </div>
 
             <div class="controls">
-                <button class="btn-primary" id="refreshBtn" disabled>🔄 Refresh</button>
-                <button class="btn-secondary" id="filterBtn">🔍 Filter</button>
-                <button class="btn-secondary" id="infoBtn">ℹ️ Info</button>
+                <button class="btn-primary" id="refreshBtn" disabled onclick="load()">🔄 Refresh Data</button>
+                <button class="btn-secondary" onclick="filter()">🔍 Apply Filters</button>
+                <button class="btn-secondary" onclick="info()">ℹ️ Info</button>
             </div>
         </div>
 
@@ -136,7 +128,7 @@
                 <div class="stat-item"><div class="stat-label">Movers</div><div class="stat-value" id="sMovers">0</div></div>
                 <div class="stat-item"><div class="stat-label">Gainers</div><div class="stat-value" id="sGainers">0</div></div>
                 <div class="stat-item"><div class="stat-label">Losers</div><div class="stat-value" id="sLosers">0</div></div>
-                <div class="stat-item"><div class="stat-label">Biggest</div><div class="stat-value" id="sBiggest" style="font-size: 18px;">-</div></div>
+                <div class="stat-item"><div class="stat-label">Biggest Move</div><div class="stat-value" id="sBiggest" style="font-size: 18px;">-</div></div>
             </div>
         </div>
         <div id="loading" class="loading" style="display: none;"><div class="spinner"></div><div id="loadTxt">Loading...</div></div>
@@ -154,9 +146,6 @@
         var allData = [];
         var current = top65;
 
-        document.getElementById('refreshBtn').onclick = load;
-        document.getElementById('filterBtn').onclick = filter;
-        document.getElementById('infoBtn').onclick = info;
         document.getElementById('universe').onchange = updateInfo;
 
         window.onload = function() {
@@ -166,76 +155,12 @@
             updateInfo();
             if (saved) {
                 key = saved;
-                document.getElementById('apiKey').value = saved;
+                document.getElementById('apiKey').value = '••••••••••••••••••••';
                 document.getElementById('refreshBtn').disabled = false;
-                document.getElementById('apiBox').style.display = 'none';
+                document.getElementById('apiBox').innerHTML = '<div class="success">✅ API key loaded from storage. Click Refresh to load new data.</div>';
                 load();
             }
         };
-
-        function downloadFile() {
-            var html = document.documentElement.outerHTML;
-            var blob = new Blob([html], { type: 'text/html' });
-            var url = URL.createObjectURL(blob);
-            var a = document.createElement('a');
-            a.href = url;
-            a.download = 'sp500-movers-tracker.html';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            alert('✅ Downloaded!\n\nTo use:\n1. Find the downloaded HTML file\n2. Double-click to open in browser\n3. Enter your RapidAPI key\n4. Click "Save & Load"\n\nIt will fetch real stock data!');
-        }
-
-        function loadDemo() {
-            document.getElementById('apiBox').style.display = 'none';
-            document.getElementById('refreshBtn').disabled = false;
-            allData = generateDemoData();
-            updateTime();
-            filter();
-            alert('📊 Demo data loaded!\n\nThis is simulated data for demonstration.\n\nFor REAL prices:\n1. Click "Download HTML File"\n2. Open the downloaded file\n3. Enter your API key\n4. Get live market data!');
-        }
-
-        function generateDemoData() {
-            var demo = [];
-            var baseNames = {
-                'AAPL': 'Apple Inc.', 'MSFT': 'Microsoft', 'NVDA': 'NVIDIA', 'AMZN': 'Amazon', 'GOOGL': 'Alphabet',
-                'META': 'Meta Platforms', 'TSLA': 'Tesla', 'BRK-B': 'Berkshire', 'UNH': 'UnitedHealth', 'XOM': 'Exxon',
-                'JPM': 'JPMorgan', 'JNJ': 'Johnson & Johnson', 'V': 'Visa', 'PG': 'Procter & Gamble', 'MA': 'Mastercard',
-                'HD': 'Home Depot', 'CVX': 'Chevron', 'MRK': 'Merck', 'ABBV': 'AbbVie', 'LLY': 'Eli Lilly'
-            };
-            var basePrices = {
-                'AAPL': 175, 'MSFT': 380, 'NVDA': 495, 'AMZN': 155, 'GOOGL': 140,
-                'META': 350, 'TSLA': 245, 'BRK-B': 365, 'UNH': 520, 'XOM': 110,
-                'JPM': 155, 'JNJ': 160, 'V': 260, 'PG': 155, 'MA': 420,
-                'HD': 340, 'CVX': 155, 'MRK': 105, 'ABBV': 165, 'LLY': 580
-            };
-            
-            for (var sym in baseNames) {
-                var pctChange = (Math.random() - 0.5) * 10;
-                var price = basePrices[sym] * (1 + pctChange / 100);
-                var change = price - basePrices[sym];
-                demo.push({
-                    symbol: sym,
-                    name: baseNames[sym],
-                    price: price,
-                    change: change,
-                    changePct: pctChange,
-                    volume: Math.floor(Math.random() * 80000000 + 20000000),
-                    marketCap: price * (Math.random() * 800000000 + 500000000),
-                    dayHigh: price * 1.02,
-                    dayLow: price * 0.98,
-                    yearHigh: price * 1.25,
-                    yearLow: price * 0.75,
-                    pe: Math.random() * 30 + 10,
-                    eps: price / (Math.random() * 30 + 10),
-                    time: Date.now() / 1000,
-                    target: price * (1 + (Math.random() - 0.3) * 0.3),
-                    rating: ['buy', 'hold', 'outperform'][Math.floor(Math.random() * 3)]
-                });
-            }
-            return demo;
-        }
 
         function updateInfo() {
             var val = parseInt(document.getElementById('universe').value);
@@ -244,22 +169,26 @@
             else if (val === 200) current = top200;
             else if (val === 500) current = top500;
             var calls = Math.ceil(current.length / 50);
-            document.getElementById('info').textContent = current.length + ' stocks (~' + calls + ' calls)';
+            document.getElementById('info').textContent = current.length + ' stocks (~' + calls + ' API calls)';
             localStorage.setItem('stock_universe', val);
         }
 
         function saveKey() {
             var input = document.getElementById('apiKey').value.trim();
-            if (!input) { alert('Enter API key'); return; }
+            if (!input) { alert('Please enter your RapidAPI key'); return; }
+            if (input.indexOf('•') >= 0) { alert('Key already saved. Click Refresh Data to reload.'); return; }
             key = input;
             localStorage.setItem('rapidapi_key', key);
             document.getElementById('refreshBtn').disabled = false;
-            document.getElementById('apiBox').style.display = 'none';
-            load();
+            document.getElementById('savedMsg').style.display = 'block';
+            setTimeout(function() {
+                document.getElementById('apiBox').style.display = 'none';
+                load();
+            }, 1000);
         }
 
         async function load() {
-            if (!key) { alert('Enter API key'); return; }
+            if (!key) { alert('Please enter your API key first'); return; }
             var loading = document.getElementById('loading');
             var loadTxt = document.getElementById('loadTxt');
             var error = document.getElementById('error');
@@ -281,19 +210,17 @@
                     var batchNum = Math.floor(i / size) + 1;
                     var total = Math.ceil(current.length / size);
                     var pct = Math.round((batchNum / total) * 100);
-                    loadTxt.textContent = 'Batch ' + batchNum + '/' + total + ' (' + pct + '%)';
+                    loadTxt.textContent = 'Loading batch ' + batchNum + '/' + total + ' (' + pct + '%)...';
                     
                     var res = await fetch(url, {
                         method: 'GET',
                         headers: { 'X-RapidAPI-Key': key, 'X-RapidAPI-Host': 'apidojo-yahoo-finance-v1.p.rapidapi.com' }
-                    }).catch(function(err) {
-                        throw new Error('Network error - Are you on Google Sites? This app needs to run from a downloaded HTML file or different host. Details: ' + err.message);
                     });
 
                     if (!res.ok) {
-                        if (res.status === 403) throw new Error('Invalid API key or not subscribed to Yahoo Finance API at RapidAPI');
-                        if (res.status === 429) throw new Error('Rate limit exceeded - wait a few minutes');
-                        throw new Error('API error: ' + res.status + ' - Check your subscription at rapidapi.com');
+                        if (res.status === 403) throw new Error('Invalid API key or not subscribed. Visit rapidapi.com and subscribe to Yahoo Finance API.');
+                        if (res.status === 429) throw new Error('Rate limit exceeded. Wait a few minutes and try again.');
+                        throw new Error('API error ' + res.status + '. Check your subscription at rapidapi.com.');
                     }
 
                     var data = await res.json();
@@ -330,7 +257,7 @@
             } catch (e) {
                 loading.style.display = 'none';
                 error.style.display = 'block';
-                error.innerHTML = '<strong>Error:</strong> ' + e.message;
+                error.innerHTML = '<strong>⚠️ Error:</strong><br>' + e.message + '<br><br><small>Make sure you have subscribed to the API and your key is valid.</small>';
                 btn.disabled = false;
             }
         }
@@ -357,7 +284,7 @@
             container.innerHTML = '';
             
             if (movers.length === 0) {
-                container.innerHTML = '<div class="no-data"><h2 style="color: #4a5568; margin-bottom: 8px;">No Movers</h2><p>Lower the threshold</p></div>';
+                container.innerHTML = '<div class="no-data"><h2 style="color: #4a5568; margin-bottom: 8px;">📊 No Significant Movers Found</h2><p>Try lowering the minimum movement threshold or check back later.</p></div>';
                 stats.style.display = 'none';
                 return;
             }
@@ -383,25 +310,25 @@
             var ratingHtml = getRating(s.rating, s.target, s.price);
             
             var html = '<div class="stock-header"><div><div class="stock-symbol">' + s.symbol + '</div><div class="stock-name">' + s.name + '</div></div>';
-            if (level) html += '<span class="badge ' + level + '">🔥</span>';
+            if (level) html += '<span class="badge ' + level + '">🔥 ' + (level === 'fire' ? 'MAJOR' : 'HOT') + '</span>';
             html += '</div><div class="stock-price">$' + s.price.toFixed(2) + '</div>';
             html += '<div class="stock-change ' + (isPos ? 'positive' : 'negative') + '">';
             html += (isPos ? '▲' : '▼') + ' ' + abs.toFixed(2) + '% (' + (isPos ? '+' : '') + '$' + s.change.toFixed(2) + ')</div>';
-            html += '<div class="time">⏰ ' + timeStr + '</div>' + ratingHtml;
+            html += '<div class="time">⏰ Updated: ' + timeStr + '</div>' + ratingHtml;
             html += '<div class="details">';
             html += '<div class="detail-row"><span class="detail-label">Volume</span><span class="detail-value">' + formatVol(s.volume) + '</span></div>';
-            html += '<div class="detail-row"><span class="detail-label">Cap</span><span class="detail-value">' + formatCap(s.marketCap) + '</span></div>';
-            html += '<div class="detail-row"><span class="detail-label">Day</span><span class="detail-value">$' + s.dayLow.toFixed(2) + '-$' + s.dayHigh.toFixed(2) + '</span></div>';
-            html += '<div class="detail-row"><span class="detail-label">52W</span><span class="detail-value">$' + s.yearLow.toFixed(2) + '-$' + s.yearHigh.toFixed(2) + '</span></div>';
-            if (s.pe > 0) html += '<div class="detail-row"><span class="detail-label">P/E</span><span class="detail-value">' + s.pe.toFixed(2) + '</span></div>';
+            html += '<div class="detail-row"><span class="detail-label">Market Cap</span><span class="detail-value">' + formatCap(s.marketCap) + '</span></div>';
+            html += '<div class="detail-row"><span class="detail-label">Day Range</span><span class="detail-value">$' + s.dayLow.toFixed(2) + ' - $' + s.dayHigh.toFixed(2) + '</span></div>';
+            html += '<div class="detail-row"><span class="detail-label">52W Range</span><span class="detail-value">$' + s.yearLow.toFixed(2) + ' - $' + s.yearHigh.toFixed(2) + '</span></div>';
+            if (s.pe > 0) html += '<div class="detail-row"><span class="detail-label">P/E Ratio</span><span class="detail-value">' + s.pe.toFixed(2) + '</span></div>';
             if (s.eps > 0) html += '<div class="detail-row"><span class="detail-label">EPS</span><span class="detail-value">$' + s.eps.toFixed(2) + '</span></div>';
-            html += '</div><div class="expand-hint">Click for details</div>';
+            html += '</div><div class="expand-hint">👆 Click for more details</div>';
             
             card.innerHTML = html;
             card.onclick = function() {
                 card.classList.toggle('expanded');
                 var hint = card.querySelector('.expand-hint');
-                hint.textContent = card.classList.contains('expanded') ? 'Click to collapse' : 'Click for details';
+                hint.textContent = card.classList.contains('expanded') ? '👆 Click to collapse' : '👆 Click for more details';
             };
             container.appendChild(card);
         }
@@ -418,9 +345,9 @@
             var tgt = '';
             if (target && target > 0) {
                 var up = ((target - price) / price * 100).toFixed(1);
-                tgt = '<div class="rating-row"><span class="rating-label">Target</span><span class="rating-value">$' + target.toFixed(2) + ' (' + (up > 0 ? '+' : '') + up + '%)</span></div>';
+                tgt = '<div class="rating-row"><span class="rating-label">Price Target</span><span class="rating-value">$' + target.toFixed(2) + ' (' + (up > 0 ? '+' : '') + up + '%)</span></div>';
             }
-            return '<div class="rating-box"><div class="rating-title">📊 Analyst</div><div class="rating-row"><span class="rating-label">Rating</span><span class="rating-badge ' + r.cls + '">' + r.txt + '</span></div>' + tgt + '</div>';
+            return '<div class="rating-box"><div class="rating-title">📊 Analyst Rating</div><div class="rating-row"><span class="rating-label">Consensus</span><span class="rating-badge ' + r.cls + '">' + r.txt + '</span></div>' + tgt + '</div>';
         }
 
         function updateStats(movers) {
@@ -436,8 +363,8 @@
 
         function updateTime() {
             var now = new Date();
-            var str = now.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
-            document.getElementById('timestamp').textContent = '📅 Updated: ' + str;
+            var str = now.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', timeZoneName: 'short' });
+            document.getElementById('timestamp').textContent = '📅 Last Updated: ' + str;
             document.getElementById('timestamp').style.display = 'block';
         }
 
@@ -449,14 +376,49 @@
         }
 
         function formatCap(c) {
-            if (c >= 1e12) return '$' + (c / 1e12).toFixed(2) + 'T';
-            if (c >= 1e9) return '$' + (c / 1e9).toFixed(2) + 'B';
-            if (c >= 1e6) return '$' + (c / 1e6).toFixed(2) + 'M';
-            return '$' + c.toFixed(0);
+            if (c >= 1e12) return ' + (c / 1e12).toFixed(2) + 'T';
+            if (c >= 1e9) return ' + (c / 1e9).toFixed(2) + 'B';
+            if (c >= 1e6) return ' + (c / 1e6).toFixed(2) + 'M';
+            return ' + c.toFixed(0);
         }
 
         function info() {
-            alert('S&P 500 Movers\n\nFeatures:\n- Scan 65-500 stocks\n- Filter by movement %\n- Real-time timestamps\n- Analyst ratings\n- Click cards for details\n\nFree tier: 500 calls/month\n\nMovement:\n🔥 Hot = 5%+\n🔥 Fire = 7%+');
+            alert('🔥 S&P 500 Significant Movers Tracker\n\n' +
+                  'Features:\n' +
+                  '✅ Scan 65-500 stocks for major movements\n' +
+                  '✅ Real-time price timestamps on each card\n' +
+                  '✅ Analyst ratings and price targets\n' +
+                  '✅ Filter by minimum % movement\n' +
+                  '✅ Sort by highest, lowest, gainers, or losers\n' +
+                  '✅ Click any card to expand full details\n' +
+                  '✅ Auto-saves your API key and settings\n\n' +
+                  'Stock Universe Options:\n' +
+                  '• Top 65: ~2 API calls (fast, recommended)\n' +
+                  '• Top 100: ~2 API calls\n' +
+                  '• Top 200: ~4 API calls\n' +
+                  '• Full 500: ~10 API calls\n\n' +
+                  'Free Tier Limit: 500 calls/month\n' +
+                  'Tip: Top 65 gives you ~250 scans per month\n\n' +
+                  'Movement Badges:\n' +
+                  '🔥 HOT = 5%+ movement\n' +
+                  '🔥 MAJOR = 7%+ movement\n\n' +
+                  'Analyst Ratings:\n' +
+                  '• Strong Buy/Buy = Bullish\n' +
+                  '• Hold = Neutral\n' +
+                  '• Sell/Strong Sell = Bearish\n' +
+                  '• Price Target = Analyst consensus target\n\n' +
+                  'How to Use:\n' +
+                  '1. Enter your RapidAPI key (one-time setup)\n' +
+                  '2. Select stock universe to scan\n' +
+                  '3. Set minimum movement threshold\n' +
+                  '4. Click Refresh Data\n' +
+                  '5. Use Apply Filters to update view\n' +
+                  '6. Click stock cards to see full details\n\n' +
+                  'Perfect for:\n' +
+                  '📈 Day traders tracking volatility\n' +
+                  '💼 Swing traders finding opportunities\n' +
+                  '📊 Investors monitoring market sentiment\n' +
+                  '🎯 Anyone wanting to spot major moves fast!');
         }
     </script>
 </body>
