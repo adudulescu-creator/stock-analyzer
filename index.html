@@ -201,8 +201,10 @@
             btn.disabled = true;
 
             try {
-                loadTxt.textContent = 'Scanning ' + current.length + ' stocks...';
+                loadTxt.textContent = 'Scanning ' + current.length + ' stocks for real prices...';
                 var size = 50;
+                var successfulBatches = 0;
+                
                 for (var i = 0; i < current.length; i += size) {
                     var batch = current.slice(i, i + size);
                     var syms = batch.join(',');
@@ -210,7 +212,7 @@
                     var batchNum = Math.floor(i / size) + 1;
                     var total = Math.ceil(current.length / size);
                     var pct = Math.round((batchNum / total) * 100);
-                    loadTxt.textContent = 'Loading batch ' + batchNum + '/' + total + ' (' + pct + '%)...';
+                    loadTxt.textContent = 'Loading REAL prices - Batch ' + batchNum + '/' + total + ' (' + pct + '%)...';
                     
                     var res = await fetch(url, {
                         method: 'GET',
@@ -218,13 +220,23 @@
                     });
 
                     if (!res.ok) {
-                        if (res.status === 403) throw new Error('Invalid API key or not subscribed. Visit rapidapi.com and subscribe to Yahoo Finance API.');
-                        if (res.status === 429) throw new Error('Rate limit exceeded. Wait a few minutes and try again.');
-                        throw new Error('API error ' + res.status + '. Check your subscription at rapidapi.com.');
+                        if (res.status === 403) {
+                            throw new Error('❌ API Key Error: Invalid key or not subscribed.\n\nFix:\n1. Go to rapidapi.com/apidojo/api/yahoo-finance1\n2. Click "Subscribe to Test" (free tier)\n3. Copy your API key from the endpoint page\n4. Enter it in this app');
+                        }
+                        if (res.status === 429) {
+                            throw new Error('⏳ Rate Limit: Too many requests.\n\nYou have exceeded your monthly quota (500 calls/month for free tier).\n\nWait until next month or upgrade your plan.');
+                        }
+                        throw new Error('🚫 API Error ' + res.status + '\n\nCheck:\n1. Your subscription is active at rapidapi.com\n2. You have API calls remaining\n3. Your API key is correct');
                     }
 
                     var data = await res.json();
+                    
+                    if (!data.quoteResponse || !data.quoteResponse.result || data.quoteResponse.result.length === 0) {
+                        throw new Error('⚠️ API returned empty data.\n\nThis means:\n1. API subscription may not be active\n2. Stock symbols are invalid\n3. Market data is unavailable\n\nCheck your RapidAPI dashboard.');
+                    }
+                    
                     if (data.quoteResponse && data.quoteResponse.result) {
+                        successfulBatches++;
                         for (var j = 0; j < data.quoteResponse.result.length; j++) {
                             var q = data.quoteResponse.result[j];
                             allData.push({
@@ -242,22 +254,36 @@
                                 pe: q.trailingPE || 0,
                                 eps: q.epsTrailingTwelveMonths || 0,
                                 time: q.regularMarketTime || Date.now() / 1000,
-                                target: q.targetMeanPrice || null,
-                                rating: q.averageAnalystRating || 'N/A'
+                                target: q.targetMeanPrice || q.targetPrice || null,
+                                rating: q.averageAnalystRating || q.recommendationKey || null,
+                                numAnalysts: q.numberOfAnalystOpinions || 0
                             });
                         }
                     }
                     await new Promise(function(r) { setTimeout(r, 200); });
                 }
 
+                if (successfulBatches === 0) {
+                    throw new Error('❌ No data loaded!\n\nAll API calls failed. Your API key may be invalid or subscription inactive.\n\nVisit rapidapi.com to check your account.');
+                }
+
                 loading.style.display = 'none';
                 updateTime();
                 filter();
                 btn.disabled = false;
+                
+                // Show success message
+                var successDiv = document.createElement('div');
+                successDiv.className = 'success';
+                successDiv.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999; max-width: 300px;';
+                successDiv.innerHTML = '✅ Loaded REAL prices for ' + allData.length + ' stocks!';
+                document.body.appendChild(successDiv);
+                setTimeout(function() { successDiv.remove(); }, 3000);
+                
             } catch (e) {
                 loading.style.display = 'none';
                 error.style.display = 'block';
-                error.innerHTML = '<strong>⚠️ Error:</strong><br>' + e.message + '<br><br><small>Make sure you have subscribed to the API and your key is valid.</small>';
+                error.innerHTML = '<strong>🚫 REAL DATA LOAD FAILED</strong><br><br>' + e.message.replace(/\n/g, '<br>') + '<br><br><button onclick="location.reload()" style="padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; margin-top: 10px;">Try Again</button>';
                 btn.disabled = false;
             }
         }
@@ -334,20 +360,116 @@
         }
 
         function getRating(key, target, price) {
-            var map = {
-                'buy': { txt: 'Strong Buy', cls: 'rating-buy' },
-                'outperform': { txt: 'Buy', cls: 'rating-buy' },
-                'hold': { txt: 'Hold', cls: 'rating-hold' },
-                'underperform': { txt: 'Sell', cls: 'rating-sell' },
-                'sell': { txt: 'Strong Sell', cls: 'rating-sell' }
-            };
-            var r = map[key ? key.toLowerCase() : ''] || { txt: 'N/A', cls: 'rating-hold' };
-            var tgt = '';
-            if (target && target > 0) {
-                var up = ((target - price) / price * 100).toFixed(1);
-                tgt = '<div class="rating-row"><span class="rating-label">Price Target</span><span class="rating-value">$' + target.toFixed(2) + ' (' + (up > 0 ? '+' : '') + up + '%)</span></div>';
+            var hasData = false;
+            var html = '<div class="rating-box"><div class="rating-title">📊 Analyst Rating</div>';
+            
+            // Rating consensus
+            if (key && key !== 'N/A' && key !== null) {
+                hasData = true;
+                var map = {
+                    'strong_buy': { txt: 'Strong Buy', cls: 'rating-buy' },
+                    'buy': { txt: 'Buy', cls: 'rating-buy' },
+                    'outperform': { txt: 'Outperform', cls: 'rating-buy' },
+                    'hold': { txt: 'Hold', cls: 'rating-hold' },
+                    'underperform': { txt: 'Underperform', cls: 'rating-sell' },
+                    'sell': { txt: 'Sell', cls: 'rating-sell' },
+                    'strong_sell': { txt: 'Strong Sell', cls: 'rating-sell' }
+                };
+                var r = map[key.toLowerCase().replace(/[\s-]/g, '_')] || null;
+                
+                if (r) {
+                    html += '<div class="rating-row"><span class="rating-label">Consensus</span><span class="rating-badge ' + r.cls + '">' + r.txt + '</span></div>';
+                }
             }
-            return '<div class="rating-box"><div class="rating-title">📊 Analyst Rating</div><div class="rating-row"><span class="rating-label">Consensus</span><span class="rating-badge ' + r.cls + '">' + r.txt + '</span></div>' + tgt + '</div>';
+            
+            // Price target
+            if (target && target > 0 && price > 0) {
+                hasData = true;
+                var up = ((target - price) / price * 100).toFixed(1);
+                var upColor = up > 0 ? '#22543d' : '#742a2a';
+                html += '<div class="rating-row"><span class="rating-label">Price Target</span><span class="rating-value" style="color: ' + upColor + ';">
+
+        function updateStats(movers) {
+            var gain = movers.filter(function(s) { return s.changePct > 0; }).length;
+            var loss = movers.filter(function(s) { return s.changePct < 0; }).length;
+            var sorted = movers.slice().sort(function(a,b) { return Math.abs(b.changePct) - Math.abs(a.changePct); });
+            var big = sorted[0];
+            document.getElementById('sMovers').textContent = movers.length;
+            document.getElementById('sGainers').textContent = gain;
+            document.getElementById('sLosers').textContent = loss;
+            document.getElementById('sBiggest').textContent = big ? big.symbol + ' ' + (big.changePct > 0 ? '+' : '') + big.changePct.toFixed(2) + '%' : '-';
+        }
+
+        function updateTime() {
+            var now = new Date();
+            var str = now.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', timeZoneName: 'short' });
+            document.getElementById('timestamp').textContent = '📅 Last Updated: ' + str;
+            document.getElementById('timestamp').style.display = 'block';
+        }
+
+        function formatVol(v) {
+            if (v >= 1e9) return (v / 1e9).toFixed(2) + 'B';
+            if (v >= 1e6) return (v / 1e6).toFixed(2) + 'M';
+            if (v >= 1e3) return (v / 1e3).toFixed(2) + 'K';
+            return v.toString();
+        }
+
+        function formatCap(c) {
+            if (c >= 1e12) return ' + (c / 1e12).toFixed(2) + 'T';
+            if (c >= 1e9) return ' + (c / 1e9).toFixed(2) + 'B';
+            if (c >= 1e6) return ' + (c / 1e6).toFixed(2) + 'M';
+            return ' + c.toFixed(0);
+        }
+
+        function info() {
+            alert('🔥 S&P 500 Significant Movers Tracker\n\n' +
+                  'Features:\n' +
+                  '✅ Scan 65-500 stocks for major movements\n' +
+                  '✅ Real-time price timestamps on each card\n' +
+                  '✅ Analyst ratings and price targets\n' +
+                  '✅ Filter by minimum % movement\n' +
+                  '✅ Sort by highest, lowest, gainers, or losers\n' +
+                  '✅ Click any card to expand full details\n' +
+                  '✅ Auto-saves your API key and settings\n\n' +
+                  'Stock Universe Options:\n' +
+                  '• Top 65: ~2 API calls (fast, recommended)\n' +
+                  '• Top 100: ~2 API calls\n' +
+                  '• Top 200: ~4 API calls\n' +
+                  '• Full 500: ~10 API calls\n\n' +
+                  'Free Tier Limit: 500 calls/month\n' +
+                  'Tip: Top 65 gives you ~250 scans per month\n\n' +
+                  'Movement Badges:\n' +
+                  '🔥 HOT = 5%+ movement\n' +
+                  '🔥 MAJOR = 7%+ movement\n\n' +
+                  'Analyst Ratings:\n' +
+                  '• Strong Buy/Buy = Bullish\n' +
+                  '• Hold = Neutral\n' +
+                  '• Sell/Strong Sell = Bearish\n' +
+                  '• Price Target = Analyst consensus target\n\n' +
+                  'How to Use:\n' +
+                  '1. Enter your RapidAPI key (one-time setup)\n' +
+                  '2. Select stock universe to scan\n' +
+                  '3. Set minimum movement threshold\n' +
+                  '4. Click Refresh Data\n' +
+                  '5. Use Apply Filters to update view\n' +
+                  '6. Click stock cards to see full details\n\n' +
+                  'Perfect for:\n' +
+                  '📈 Day traders tracking volatility\n' +
+                  '💼 Swing traders finding opportunities\n' +
+                  '📊 Investors monitoring market sentiment\n' +
+                  '🎯 Anyone wanting to spot major moves fast!');
+        }
+    </script>
+</body>
+</html> + target.toFixed(2) + ' (' + (up > 0 ? '+' : '') + up + '%)</span></div>';
+            }
+            
+            if (!hasData) {
+                html += '<div class="rating-row"><span class="rating-label" style="color: #a0aec0;">No analyst data available</span></div>';
+            }
+            
+            html += '</div>';
+            return html;
         }
 
         function updateStats(movers) {
